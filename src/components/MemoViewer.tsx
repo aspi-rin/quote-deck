@@ -199,7 +199,7 @@ export const MemoViewer = ({ reloadKey }: MemoViewerProps) => {
           上一条
         </Button>
         <Button variant="bordered" onPress={handleReload}>
-          重新随机
+          🎲
         </Button>
         <Button
           color="primary"
