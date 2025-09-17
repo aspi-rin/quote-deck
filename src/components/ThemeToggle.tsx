@@ -1,35 +1,18 @@
 import { Button, Tooltip } from "@heroui/react";
 import { MoonIcon, SunIcon } from "@heroui/shared-icons";
 import { useMemo } from "react";
-import { useTheme, type ThemePreference } from "../providers/theme";
-
-const nextPreference = (current: ThemePreference): ThemePreference => {
-  switch (current) {
-    case "system":
-      return "light";
-    case "light":
-      return "dark";
-    default:
-      return "system";
-  }
-};
+import { useTheme } from "../providers/theme";
 
 export const ThemeToggle = () => {
-  const { mode, preference, setPreference } = useTheme();
+  const { mode, setPreference } = useTheme();
 
   const label = useMemo(() => {
-    switch (preference) {
-      case "light":
-        return "当前：浅色模式";
-      case "dark":
-        return "当前：深色模式";
-      default:
-        return "当前：跟随系统";
-    }
-  }, [preference]);
+    return mode === "dark" ? "当前：深色模式" : "当前：浅色模式";
+  }, [mode]);
 
   const handleToggle = () => {
-    setPreference(nextPreference(preference));
+    const next = mode === "dark" ? "light" : "dark";
+    setPreference(next);
   };
 
   const Icon = mode === "dark" ? MoonIcon : SunIcon;

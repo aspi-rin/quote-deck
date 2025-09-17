@@ -1,18 +1,8 @@
-import {
-  Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  Spinner,
-  Tooltip,
-} from "@heroui/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button, Card, CardBody, CardHeader, Spinner } from "@heroui/react";
+import { useCallback, useEffect, useState } from "react";
 import { useSwipeable } from "react-swipeable";
-import { adjustMemoLike, fetchRandomMemos, toggleOwnerMemoLike } from "../services/memos";
+import { fetchRandomMemos } from "../services/memos";
 import type { Memo } from "../types";
-import { useVisitorLikes } from "../hooks/useVisitorLikes";
-import { HeartIcon } from "./icons/HeartIcon";
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroui/shared-icons";
 import clsx from "clsx";
 
@@ -27,19 +17,15 @@ const formatError = (error: unknown) => {
 };
 
 type MemoViewerProps = {
-  isOwner: boolean;
   reloadKey: string;
 };
 
-export const MemoViewer = ({ isOwner, reloadKey }: MemoViewerProps) => {
+export const MemoViewer = ({ reloadKey }: MemoViewerProps) => {
   const [memos, setMemos] = useState<Memo[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [prefetching, setPrefetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [likeLoading, setLikeLoading] = useState(false);
-
-  const visitorLikes = useVisitorLikes();
 
   const loadInitial = useCallback(async () => {
     setLoading(true);
@@ -129,104 +115,6 @@ export const MemoViewer = ({ isOwner, reloadKey }: MemoViewerProps) => {
     trackMouse: true,
   });
 
-  const isLiked = useMemo(() => {
-    if (!currentMemo) {
-      return false;
-    }
-
-    return isOwner
-      ? currentMemo.liked_by_owner
-      : visitorLikes.isLiked(currentMemo.id);
-  }, [currentMemo, isOwner, visitorLikes]);
-
-  const likeCount = currentMemo?.like_count ?? 0;
-
-  const handleToggleLike = useCallback(async () => {
-    if (!currentMemo || likeLoading) {
-      return;
-    }
-
-    setLikeLoading(true);
-    setError(null);
-
-    if (isOwner) {
-      try {
-        const result = await toggleOwnerMemoLike(currentMemo.id);
-        setMemos((prev) =>
-          prev.map((memo, index) =>
-            index === currentIndex
-              ? {
-                  ...memo,
-                  like_count: result.like_count,
-                  liked_by_owner: result.liked_by_owner,
-                }
-              : memo,
-          ),
-        );
-      } catch (err) {
-        setError(formatError(err));
-      } finally {
-        setLikeLoading(false);
-      }
-      return;
-    }
-
-    const targetLiked = !visitorLikes.isLiked(currentMemo.id);
-    const previousCount = currentMemo.like_count;
-
-    // Optimistic update
-    visitorLikes.setLiked(currentMemo.id, targetLiked);
-    setMemos((prev) =>
-      prev.map((memo, index) =>
-        index === currentIndex
-          ? {
-              ...memo,
-              like_count: Math.max(
-                0,
-                memo.like_count + (targetLiked ? 1 : -1),
-              ),
-            }
-          : memo,
-      ),
-    );
-
-    try {
-      const newCount = await adjustMemoLike(currentMemo.id, targetLiked ? 1 : -1);
-      setMemos((prev) =>
-        prev.map((memo, index) =>
-          index === currentIndex
-            ? {
-                ...memo,
-                like_count: newCount,
-              }
-            : memo,
-        ),
-      );
-    } catch (err) {
-      // Revert on failure
-      visitorLikes.setLiked(currentMemo.id, !targetLiked);
-      setMemos((prev) =>
-        prev.map((memo, index) =>
-          index === currentIndex
-            ? {
-                ...memo,
-                like_count: previousCount,
-              }
-            : memo,
-        ),
-      );
-      setError(formatError(err));
-    } finally {
-      setLikeLoading(false);
-    }
-  }, [
-    currentIndex,
-    currentMemo,
-    isOwner,
-    likeLoading,
-    visitorLikes,
-  ]);
-
   const handleReload = useCallback(() => {
     void loadInitial();
   }, [loadInitial]);
@@ -278,27 +166,6 @@ export const MemoViewer = ({ isOwner, reloadKey }: MemoViewerProps) => {
             {currentMemo.content}
           </p>
         </CardBody>
-        <CardFooter className="flex items-center justify-between gap-4">
-          <Tooltip
-            content={isLiked ? "取消点赞" : "点赞"}
-            placement="bottom"
-            delay={200}
-          >
-            <Button
-              isIconOnly
-              variant={isLiked ? "solid" : "bordered"}
-              color={isLiked ? "danger" : "default"}
-              onPress={handleToggleLike}
-              isDisabled={likeLoading}
-              aria-label={isLiked ? "取消点赞" : "点赞"}
-            >
-              <HeartIcon filled={isLiked} />
-            </Button>
-          </Tooltip>
-          <p className="text-sm text-foreground-500">
-            共 <span className="font-semibold text-foreground">{likeCount}</span> 次喜欢
-          </p>
-        </CardFooter>
       </div>
     );
   };

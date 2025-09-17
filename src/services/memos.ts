@@ -2,6 +2,12 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import type { Memo } from "../types";
 
+const throwPostgrestError = (error: PostgrestError): never => {
+  throw new Error(error.message ?? "Supabase request failed", {
+    cause: error,
+  });
+};
+
 const mapMemo = (row: any): Memo => ({
   id: row.id,
   content: row.content,
@@ -19,7 +25,7 @@ export const fetchRandomMemos = async (limit = 10): Promise<Memo[]> => {
   });
 
   if (error) {
-    throw error;
+    throwPostgrestError(error);
   }
 
   return (data ?? []).map(mapMemo);
@@ -35,7 +41,7 @@ export const adjustMemoLike = async (
   });
 
   if (error) {
-    throw error;
+    throwPostgrestError(error);
   }
 
   const [row] = data ?? [];
@@ -44,16 +50,19 @@ export const adjustMemoLike = async (
 
 export const toggleOwnerMemoLike = async (
   memoId: string,
-): Promise<{ liked_by_owner: boolean; like_count: number }> => {
+): Promise<{ liked_by_owner: boolean; like_count: number } | null> => {
   const { data, error } = await supabase.rpc("owner_toggle_memo_like", {
     p_memo_id: memoId,
   });
 
   if (error) {
-    throw error;
+    throwPostgrestError(error);
   }
 
   const [row] = data ?? [];
+  if (!row) {
+    return null;
+  }
   return {
     liked_by_owner: row?.liked_by_owner ?? false,
     like_count: row?.like_count ?? 0,
@@ -84,7 +93,11 @@ export const createBookIfNeeded = async (
     .single();
 
   if (error) {
-    throw error;
+    throwPostgrestError(error);
+  }
+
+  if (!data) {
+    throw new Error("Book upsert did not return data");
   }
 
   return { id: data.id };
