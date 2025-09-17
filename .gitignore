@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+/dist/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Editor & tooling
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
