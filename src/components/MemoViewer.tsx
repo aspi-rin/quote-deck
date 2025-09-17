@@ -9,6 +9,33 @@ import clsx from "clsx";
 const BATCH_SIZE = 10;
 const PREFETCH_THRESHOLD = 2;
 
+const isEditableElement = (element: Element | null): boolean => {
+  if (!element) {
+    return false;
+  }
+
+  const tagName = element.tagName.toLowerCase();
+  if (tagName === "input" || tagName === "textarea") {
+    return true;
+  }
+
+  if (element instanceof HTMLElement && element.isContentEditable) {
+    return true;
+  }
+
+  return element.closest("input, textarea, [contenteditable='true']") !== null;
+};
+
+const shouldIgnoreArrowNavigation = (event: KeyboardEvent) => {
+  const target = event.target instanceof Element ? event.target : null;
+  if (isEditableElement(target)) {
+    return true;
+  }
+
+  const activeElement = document.activeElement instanceof Element ? document.activeElement : null;
+  return isEditableElement(activeElement);
+};
+
 const formatError = (error: unknown) => {
   if (error instanceof Error) {
     return error.message;
@@ -95,11 +122,19 @@ export const MemoViewer = ({ reloadKey }: MemoViewerProps) => {
 
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+        return;
+      }
+
+      if (shouldIgnoreArrowNavigation(event)) {
+        return;
+      }
+
+      event.preventDefault();
+
       if (event.key === "ArrowRight") {
-        event.preventDefault();
         handleNext();
-      } else if (event.key === "ArrowLeft") {
-        event.preventDefault();
+      } else {
         handlePrev();
       }
     };
